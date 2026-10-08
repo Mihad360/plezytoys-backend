@@ -14,12 +14,16 @@ const app: Application = express();
 // Request logging
 app.use(logHttpRequests);
 
-// Parser & CORS
+const allowedOrigins = process.env.CLIENT_URLS?.split(",") || [];
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, Postman) or any frontend origin
-      callback(null, true);
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
     },
     credentials: true,
   }),
