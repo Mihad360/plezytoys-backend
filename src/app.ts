@@ -12,55 +12,14 @@ import { privacyControllers } from "./app/modules/Settings/privacy/Privacy.contr
 import { logHttpRequests } from "./logger/logger";
 
 const app: Application = express();
-// Request logging
-app.use(logHttpRequests);
-
-export const connectDB = async () => {
-  if (mongoose.connection.readyState === 1) return;
-  if (!config.DATABASE_URL) {
-    // eslint-disable-next-line no-console
-    console.warn("DATABASE_URL is not defined in environment variables");
-    return;
-  }
-  try {
-    await mongoose.connect(config.DATABASE_URL as string, {
-      dbName: "Plezytoys",
-      serverSelectionTimeoutMS: 5000,
-    });
-    // eslint-disable-next-line no-console
-    console.log("Database connected successfully");
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("Database connection error:", err);
-  }
-};
-
-// Initiate connection
-connectDB();
-
-// Ensure connection before handling API routes
-app.use(async (req, res, next) => {
-  if (
-    req.path === "/" ||
-    req.path === "/favicon.ico" ||
-    req.path === "/health" ||
-    req.path === "/api/health"
-  ) {
-    return next();
-  }
-  if (mongoose.connection.readyState !== 1) {
-    await connectDB();
-  }
-  next();
-});
-
 const allowedOrigins =
   process.env.CLIENT_URLS?.split(",").map((s) => s.trim()) || [];
 
+// 1. CORS FIRST so every response has CORS headers attached
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, Postman)
+      // Allow requests with no origin (mobile apps, Postman)
       if (!origin) return callback(null, true);
 
       if (
@@ -77,12 +36,48 @@ app.use(
     credentials: true,
   }),
 );
+
+// 2. Parsers & logging
+app.use(logHttpRequests);
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 app.use(cookieParser());
 
-// Static file hosting
+// 3. Database connection helper
+export const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) return;
+  if (!config.DATABASE_URL) {
+    // eslint-disable-next-line no-console
+    console.warn("DATABASE_URL is not defined in environment variables");
+    return;
+  }
+  await mongoose.connect(config.DATABASE_URL as string, {
+    dbName: "Plezytoys",
+    serverSelectionTimeoutMS: 5000,
+  });
+  // eslint-disable-next-line no-console
+  console.log("Database connected successfully");
+};
+
+// 4. Static file hosting
 app.use("/public", express.static(path.join(process.cwd(), "public")));
+
+// 5. Connect database before handling API routes
+app.use("/api/v1", async (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    try {
+      await connectDB();
+    } catch (err: any) {
+      return res.status(500).json({
+        success: false,
+        message:
+          "Database connection failed. Please ensure '0.0.0.0/0' is whitelisted in MongoDB Atlas Network Access.",
+        error: err?.message || String(err),
+      });
+    }
+  }
+  next();
+});
 
 // Application API routes
 app.use("/api/v1", router);
