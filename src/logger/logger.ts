@@ -6,10 +6,40 @@ import { Request, Response, NextFunction } from "express";
 
 import { blue, green, red, yellowBright, magenta, yellow } from "colorette";
 
-// Ensure the logs directory exists
-const logDirectory = path.join(__dirname, "logs");
-if (!fs.existsSync(logDirectory)) {
-  fs.mkdirSync(logDirectory);
+const isServerless = Boolean(
+  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME,
+);
+
+const loggerTransports: any[] = [
+  new transports.Console({
+    format: format.combine(format.colorize(), format.simple()),
+  }),
+];
+
+if (!isServerless) {
+  // Ensure the logs directory exists locally
+  const logDirectory = path.join(__dirname, "logs");
+  if (!fs.existsSync(logDirectory)) {
+    try {
+      fs.mkdirSync(logDirectory, { recursive: true });
+    } catch {
+      // Ignore if directory creation fails
+    }
+  }
+
+  loggerTransports.push(
+    new DailyRotateFile({
+      filename: path.join(logDirectory, "error-%DATE%.log"),
+      datePattern: "YYYY-MM-DD",
+      level: "error", // Logs only error level
+      format: format.combine(format.uncolorize(), format.json()),
+    }),
+    new DailyRotateFile({
+      filename: path.join(logDirectory, "combined-%DATE%.log"),
+      datePattern: "YYYY-MM-DD",
+      format: format.combine(format.uncolorize(), format.json()),
+    }),
+  );
 }
 
 export const logger = createLogger({
@@ -20,22 +50,7 @@ export const logger = createLogger({
     format.splat(),
     format.json(),
   ),
-  transports: [
-    new DailyRotateFile({
-      filename: path.join(logDirectory, "error-%DATE%.log"),
-      datePattern: "YYYY-MM-DD",
-      level: "error", // Logs only error level
-      format: format.combine(format.uncolorize(), format.json()), // Ensure no color in files
-    }),
-    new DailyRotateFile({
-      filename: path.join(logDirectory, "combined-%DATE%.log"),
-      datePattern: "YYYY-MM-DD",
-      format: format.combine(format.uncolorize(), format.json()), // Ensure no color in files
-    }),
-    new transports.Console({
-      format: format.combine(format.colorize(), format.simple()),
-    }),
-  ],
+  transports: loggerTransports,
 });
 
 // Middleware to log HTTP requests

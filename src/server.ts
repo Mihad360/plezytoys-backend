@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import app from "./app";
+import app, { connectDB } from "./app";
 import config from "./app/config";
 import mongoose from "mongoose";
 import { Server } from "http";
@@ -16,20 +16,7 @@ import {
 
 let server: Server;
 
-export async function connectDB() {
-  if (mongoose.connection.readyState === 1) {
-    return;
-  }
-  if (!config.DATABASE_URL) {
-    console.warn("DATABASE_URL is not defined in environment variables");
-    return;
-  }
-  await mongoose.connect(config.DATABASE_URL as string);
-  console.log("Database connected successfully");
-}
-
 async function main() {
-
   try {
     await connectDB();
 

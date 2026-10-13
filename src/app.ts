@@ -12,37 +12,33 @@ import { privacyControllers } from "./app/modules/Settings/privacy/Privacy.contr
 import { logHttpRequests } from "./logger/logger";
 
 const app: Application = express();
-
 // Request logging
 app.use(logHttpRequests);
 
-let cachedPromise: Promise<typeof mongoose> | null = null;
-
-const ensureDBConnection = async () => {
-  if (mongoose.connection.readyState === 1) {
+export const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) return;
+  if (!config.DATABASE_URL) {
+    // eslint-disable-next-line no-console
+    console.warn("DATABASE_URL is not defined in environment variables");
     return;
   }
-  if (!config.DATABASE_URL) {
-    throw new Error(
-      "DATABASE_URL is not defined in environment variables. Please check your Vercel Project Settings.",
-    );
+  try {
+    await mongoose.connect(config.DATABASE_URL as string, {
+      dbName: "Plezytoys",
+      serverSelectionTimeoutMS: 5000,
+    });
+    // eslint-disable-next-line no-console
+    console.log("Database connected successfully");
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Database connection error:", err);
   }
-  if (!cachedPromise) {
-    cachedPromise = mongoose
-      .connect(config.DATABASE_URL as string, {
-        serverSelectionTimeoutMS: 5000,
-      })
-      .catch((err) => {
-        cachedPromise = null;
-        throw new Error(
-          `Failed to connect to MongoDB: ${err.message}. If deploying on Vercel, please make sure '0.0.0.0/0' is added to MongoDB Atlas Network Access.`,
-        );
-      });
-  }
-  await cachedPromise;
 };
 
-// Ensure database connection in serverless environment
+// Initiate connection
+connectDB();
+
+// Ensure connection before handling API routes
 app.use(async (req, res, next) => {
   if (
     req.path === "/" ||
@@ -52,35 +48,32 @@ app.use(async (req, res, next) => {
   ) {
     return next();
   }
-  try {
-    await ensureDBConnection();
-    next();
-  } catch (err) {
-    next(err);
+  if (mongoose.connection.readyState !== 1) {
+    await connectDB();
   }
+  next();
 });
 
-const allowedOrigins = process.env.CLIENT_URLS?.split(",") || [];
+const allowedOrigins =
+  process.env.CLIENT_URLS?.split(",").map((s) => s.trim()) || [];
 
 app.use(
   cors({
-    // origin: (origin, callback) => {
-    //   if (
-    //     !origin ||
-    //     allowedOrigins.includes(origin) ||
-    //     origin.endsWith(".vercel.app") ||
-    //     origin.includes("localhost")
-    //   ) {
-    //     callback(null, true);
-    //   } else {
-    //     callback(new Error("Not allowed by CORS"));
-    //   }
-    // },
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "https://plezytoys-frontend.vercel.app",
-    ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, Postman)
+      if (!origin) return callback(null, true);
+
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:") ||
+        origin.endsWith(".vercel.app")
+      ) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
     credentials: true,
   }),
 );
