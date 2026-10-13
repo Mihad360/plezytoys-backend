@@ -16,30 +16,62 @@ const app: Application = express();
 // Request logging
 app.use(logHttpRequests);
 
+let cachedPromise: Promise<typeof mongoose> | null = null;
+
+const ensureDBConnection = async () => {
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+  if (!config.DATABASE_URL) {
+    throw new Error(
+      "DATABASE_URL is not defined in environment variables. Please check your Vercel Project Settings.",
+    );
+  }
+  if (!cachedPromise) {
+    cachedPromise = mongoose
+      .connect(config.DATABASE_URL as string)
+      .catch((err) => {
+        cachedPromise = null;
+        throw err;
+      });
+  }
+  await cachedPromise;
+};
+
 // Ensure database connection in serverless environment
 app.use(async (req, res, next) => {
-  if (mongoose.connection.readyState !== 1 && config.DATABASE_URL) {
-    try {
-      await mongoose.connect(config.DATABASE_URL as string);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("Database connection failed in serverless request:", err);
-    }
+  if (req.path === "/" || req.path === "/favicon.ico") {
+    return next();
   }
-  next();
+  try {
+    await ensureDBConnection();
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
 const allowedOrigins = process.env.CLIENT_URLS?.split(",") || [];
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    // origin: (origin, callback) => {
+    //   if (
+    //     !origin ||
+    //     allowedOrigins.includes(origin) ||
+    //     origin.endsWith(".vercel.app") ||
+    //     origin.includes("localhost")
+    //   ) {
+    //     callback(null, true);
+    //   } else {
+    //     callback(new Error("Not allowed by CORS"));
+    //   }
+    // },
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://plezytoys-frontend.vercel.app",
+    ],
     credentials: true,
   }),
 );
