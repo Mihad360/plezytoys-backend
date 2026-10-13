@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
+    "dev": "node api.js && nodemon src/server.ts",
+    "seed": "tsx scripts/reset-and-seed.ts",
+    "db:reset": "tsx scripts/reset-and-seed.ts",
+    "build": "node api.js && tsc && node -e \"require('fs').mkdirSync('public', {recursive: true})\"",
+    "start": "node api.js && node dist/server.js",
     "lint": "eslint 'src/**/*.{ts,js,json}'",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write 'src/**/*.{ts,js,json}'"

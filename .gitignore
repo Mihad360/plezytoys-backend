@@ -15,7 +15,8 @@ node_modules
 /dist
 
 # Public uploads folder and its contents
-/public/
+/public/*
+!/public/.gitkeep
 
 npm-debug.log*
 yarn-debug.log*

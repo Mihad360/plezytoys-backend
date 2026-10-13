@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import config from "../config";
 import { AboutModel } from "../modules/Settings/About/About.model";
 import { PrivacyModel } from "../modules/Settings/privacy/Privacy.model";
@@ -5,6 +6,14 @@ import { TermsModel } from "../modules/Settings/Terms/Terms.model";
 import { UserModel } from "../modules/User/user.model";
 import { CompanyModel } from "../modules/Company/company.model";
 import { SubscriptionPlanModel } from "../modules/SubscriptionPlan/subscriptionPlan.model";
+import { CustomerModel } from "../modules/Customer/customer.model";
+import { LocationModel } from "../modules/Location/location.model";
+import { NfcCheckpointModel } from "../modules/NfcCheckpoint/nfc.model";
+import { PatrolRouteModel } from "../modules/PatrolRoute/patrolRoute.model";
+import { TaskModel } from "../modules/Task/task.model";
+import { ReportModel } from "../modules/Report/report.model";
+import { WorkSessionModel } from "../modules/WorkSession/workSession.model";
+import { ShiftModel } from "../modules/Shift/shift.model";
 
 import { IUser } from "../modules/User/user.interface";
 
@@ -32,6 +41,17 @@ const superAdmin: Partial<IUser> = {
   role: "super_admin",
   isVerified: true,
   status: "active",
+};
+
+export const clearDatabase = async () => {
+  if (!mongoose.connection.db) {
+    throw new Error("Database not connected");
+  }
+  const collections = await mongoose.connection.db.listCollections().toArray();
+  for (const collection of collections) {
+    await mongoose.connection.db.collection(collection.name).deleteMany({});
+  }
+  console.log(`Cleared ${collections.length} collections.`);
 };
 
 export const seedAdmin = async () => {
@@ -106,13 +126,13 @@ export const seedSubscriptionPlans = async () => {
 
 export const seedDemoUsers = async () => {
   try {
-    // 1. Create a dummy Company first
+    // 1. Seed demo Company
     let company = await CompanyModel.findOne({
       $or: [
         { contactEmail: "company_admin@shiftpoint.com" },
         { contactEmail: "admin@shiftpoint-demo.com" },
-        { name: "ShiftPoint Demo Company" }
-      ]
+        { name: "ShiftPoint Demo Company" },
+      ],
     });
     if (!company) {
       company = await CompanyModel.create({
@@ -142,7 +162,7 @@ export const seedDemoUsers = async () => {
       email: "company_admin@shiftpoint.com",
       password: "password123",
       role: "company_admin",
-      company: company._id as import("mongoose").Types.ObjectId,
+      company: company._id as mongoose.Types.ObjectId,
       isVerified: true,
       status: "active",
     };
@@ -158,7 +178,7 @@ export const seedDemoUsers = async () => {
       email: "manager@shiftpoint.com",
       password: "password123",
       role: "manager",
-      company: company._id as import("mongoose").Types.ObjectId,
+      company: company._id as mongoose.Types.ObjectId,
       employeeId: "MGR-001",
       isVerified: true,
       status: "active",
@@ -169,34 +189,7 @@ export const seedDemoUsers = async () => {
       console.log("Demo Manager seeded.");
     }
 
-    // 4. Seed Employee
-    const employee: Partial<IUser> = {
-      firstName: "Daan",
-      lastName: "Vermeer",
-      email: "employee@shiftpoint.com",
-      password: "password123",
-      role: "employee",
-      company: company._id as import("mongoose").Types.ObjectId,
-      employeeId: "EMP-1024",
-      assignedManager: managerDoc?._id as import("mongoose").Types.ObjectId,
-      isVerified: true,
-      status: "active",
-    };
-    let employeeDoc = await UserModel.findOne({ email: employee.email });
-    if (!employeeDoc) {
-      employeeDoc = await UserModel.create(employee);
-      console.log("Demo Employee seeded.");
-    }
-
-    // 5. Seed Operational Data for Dashboard Testing
-    const LocationModel = (await import("../modules/Location/location.model")).LocationModel;
-    const CustomerModel = (await import("../modules/Customer/customer.model")).CustomerModel;
-    const NfcModel = (await import("../modules/NfcCheckpoint/nfc.model")).NfcCheckpointModel;
-    const PatrolRouteModel = (await import("../modules/PatrolRoute/patrolRoute.model")).PatrolRouteModel;
-    const TaskModel = (await import("../modules/Task/task.model")).TaskModel;
-    const WorkSessionModel = (await import("../modules/WorkSession/workSession.model")).WorkSessionModel;
-    const ReportModel = (await import("../modules/Report/report.model")).ReportModel;
-
+    // 4. Seed Customer
     let customer = await CustomerModel.findOne({ company: company._id });
     if (!customer) {
       customer = await CustomerModel.create({
@@ -208,6 +201,7 @@ export const seedDemoUsers = async () => {
       console.log("Demo Customer seeded.");
     }
 
+    // 5. Seed Location
     let location = await LocationModel.findOne({ company: company._id });
     if (!location) {
       location = await LocationModel.create({
@@ -219,9 +213,36 @@ export const seedDemoUsers = async () => {
       console.log("Demo Location seeded.");
     }
 
-    let nfc = await NfcModel.findOne({ company: company._id });
+    // 6. Seed Employee
+    const employee: Partial<IUser> = {
+      firstName: "Daan",
+      lastName: "Vermeer",
+      email: "employee@shiftpoint.com",
+      password: "password123",
+      role: "employee",
+      company: company._id as mongoose.Types.ObjectId,
+      employeeId: "EMP-1024",
+      assignedManager: managerDoc?._id as mongoose.Types.ObjectId,
+      assignedLocation: location._id as mongoose.Types.ObjectId,
+      assignedLocations: [location._id as mongoose.Types.ObjectId],
+      isVerified: true,
+      status: "active",
+    };
+    let employeeDoc = await UserModel.findOne({ email: employee.email });
+    if (!employeeDoc) {
+      employeeDoc = await UserModel.create(employee);
+      console.log("Demo Employee seeded.");
+    } else if (!employeeDoc.assignedLocation) {
+      await UserModel.updateOne(
+        { _id: employeeDoc._id },
+        { $set: { assignedLocation: location._id, assignedLocations: [location._id] } },
+      );
+    }
+
+    // 7. Seed NFC Checkpoint
+    let nfc = await NfcCheckpointModel.findOne({ company: company._id });
     if (!nfc) {
-      nfc = await NfcModel.create({
+      nfc = await NfcCheckpointModel.create({
         tagId: "04:6A:B2:Demo:01",
         name: "Main Entrance Checkpoint",
         company: company._id,
@@ -232,6 +253,7 @@ export const seedDemoUsers = async () => {
       console.log("Demo NFC Checkpoint seeded.");
     }
 
+    // 8. Seed Patrol Route
     let route = await PatrolRouteModel.findOne({ company: company._id });
     if (!route) {
       route = await PatrolRouteModel.create({
@@ -244,21 +266,49 @@ export const seedDemoUsers = async () => {
       console.log("Demo Patrol Route seeded.");
     }
 
+    // 9. Seed Task
     let task = await TaskModel.findOne({ company: company._id });
     if (!task) {
       task = await TaskModel.create({
-        title: "Check Fire Extinguishers",
+        title: "Inspect Emergency Exit Fire Extinguishers",
+        description: "Verify pressure gauge, inspection seals, and clear pathway at Sector C emergency exits.",
         type: "security_check",
+        priority: "high",
         company: company._id,
         location: location._id,
         createdBy: managerDoc._id,
         assignedTo: employeeDoc._id,
         status: "pending",
+        checklist: [
+          { text: "Check pressure gauge needle is in green zone", isCompleted: false, isMandatory: true },
+          { text: "Verify safety seal and tamper indicator intact", isCompleted: false, isMandatory: true },
+          { text: "Ensure unobstructed access to emergency exit doors", isCompleted: false, isMandatory: true },
+        ],
         isActive: true,
       });
       console.log("Demo Task seeded.");
     }
 
+    // 10. Seed Shift for today
+    let shift = await ShiftModel.findOne({ user: employeeDoc._id });
+    if (!shift && managerDoc) {
+      const today = new Date();
+      today.setHours(8, 0, 0, 0);
+      shift = await ShiftModel.create({
+        user: employeeDoc._id,
+        company: company._id,
+        location: location._id,
+        date: today,
+        startTime: "08:00",
+        endTime: "16:00",
+        status: "upcoming",
+        manager: managerDoc._id,
+        notes: "Morning Shift 08:00 — 16:00",
+      });
+      console.log("Demo Shift seeded.");
+    }
+
+    // 11. Seed Report
     let report = await ReportModel.findOne({ company: company._id });
     if (!report) {
       report = await ReportModel.create({
@@ -275,6 +325,7 @@ export const seedDemoUsers = async () => {
       console.log("Demo Report seeded.");
     }
 
+    // 12. Seed WorkSession
     let session = await WorkSessionModel.findOne({ company: company._id });
     if (!session) {
       session = await WorkSessionModel.create({
@@ -286,7 +337,6 @@ export const seedDemoUsers = async () => {
       });
       console.log("Demo WorkSession seeded.");
     }
-
   } catch (error) {
     console.error("Error seeding demo users:", error);
   }
@@ -326,4 +376,14 @@ export const seedAbout = async () => {
   } catch (error) {
     console.error("Error seeding about us:", error);
   }
+};
+
+export const seedAll = async () => {
+  await seedAdmin();
+  await seedSuperAdmin();
+  await seedSubscriptionPlans();
+  await seedDemoUsers();
+  await seedPrivacy();
+  await seedTerms();
+  await seedAbout();
 };

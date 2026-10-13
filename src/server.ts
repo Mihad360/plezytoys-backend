@@ -4,15 +4,7 @@ import config from "./app/config";
 import mongoose from "mongoose";
 import { Server } from "http";
 import { initSocketIO } from "./app/utils/socket";
-import {
-  seedAbout,
-  seedAdmin,
-  seedPrivacy,
-  seedSuperAdmin,
-  seedTerms,
-  seedDemoUsers,
-  seedSubscriptionPlans,
-} from "./app/DB";
+import { seedAll } from "./app/DB";
 
 let server: Server;
 
@@ -28,13 +20,7 @@ async function main() {
     initSocketIO(server);
 
     // Initial database seeds (self-contained and idempotent)
-    seedAdmin();
-    seedSuperAdmin();
-    seedPrivacy();
-    seedTerms();
-    seedAbout();
-    seedSubscriptionPlans();
-    seedDemoUsers();
+    await seedAll();
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Database connection failed:", error);
