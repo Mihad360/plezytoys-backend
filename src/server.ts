@@ -88,29 +88,33 @@ async function gracefulShutdown(signal?: string) {
   }
 }
 
-main();
+if (!process.env.VERCEL) {
+  main();
+}
 
-// Handle unhandled promise rejections
-process.on("unhandledRejection", (reason: any) => {
-  // eslint-disable-next-line no-console
-  console.error("💥 Unhandled Rejection detected:", reason);
-  gracefulShutdown("unhandledRejection");
-});
+if (!process.env.VERCEL) {
+  // Handle unhandled promise rejections
+  process.on("unhandledRejection", (reason: any) => {
+    // eslint-disable-next-line no-console
+    console.error("💥 Unhandled Rejection detected:", reason);
+    gracefulShutdown("unhandledRejection");
+  });
 
-// Handle uncaught exceptions
-process.on("uncaughtException", (error: Error) => {
-  // eslint-disable-next-line no-console
-  console.error("💥 Uncaught Exception detected:", error);
-  gracefulShutdown("uncaughtException");
-});
+  // Handle uncaught exceptions
+  process.on("uncaughtException", (error: Error) => {
+    // eslint-disable-next-line no-console
+    console.error("💥 Uncaught Exception detected:", error);
+    gracefulShutdown("uncaughtException");
+  });
 
-// Handle termination signals
-process.on("SIGTERM", () => {
-  gracefulShutdown("SIGTERM");
-});
+  // Handle termination signals
+  process.on("SIGTERM", () => {
+    gracefulShutdown("SIGTERM");
+  });
 
-process.on("SIGINT", () => {
-  gracefulShutdown("SIGINT");
-});
+  process.on("SIGINT", () => {
+    gracefulShutdown("SIGINT");
+  });
+}
 
 export default app;
