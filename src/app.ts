@@ -2,6 +2,8 @@ import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "path";
+import mongoose from "mongoose";
+import config from "./app/config";
 import globalErrorHandler from "./app/middlewares/globalErrorHandler";
 import notFound from "./app/middlewares/notFound";
 import router from "./app/routes";
@@ -13,6 +15,19 @@ const app: Application = express();
 
 // Request logging
 app.use(logHttpRequests);
+
+// Ensure database connection in serverless environment
+app.use(async (req, res, next) => {
+  if (mongoose.connection.readyState !== 1 && config.DATABASE_URL) {
+    try {
+      await mongoose.connect(config.DATABASE_URL as string);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("Database connection failed in serverless request:", err);
+    }
+  }
+  next();
+});
 
 const allowedOrigins = process.env.CLIENT_URLS?.split(",") || [];
 

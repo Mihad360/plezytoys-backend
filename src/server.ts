@@ -16,35 +16,45 @@ import {
 
 let server: Server;
 
+export async function connectDB() {
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+  if (!config.DATABASE_URL) {
+    console.warn("DATABASE_URL is not defined in environment variables");
+    return;
+  }
+  await mongoose.connect(config.DATABASE_URL as string);
+  console.log("Database connected successfully");
+}
+
 async function main() {
   try {
-    if (!config.DATABASE_URL) {
-      throw new Error("DATABASE_URL is not defined in environment variables");
+    await connectDB();
+
+    if (!process.env.VERCEL) {
+      server = app.listen(config.PORT, () => {
+        // eslint-disable-next-line no-console
+        console.log(`App listening on port ${config.PORT} [${config.NODE_ENV}]`);
+      });
+
+      initSocketIO(server);
+
+      // Initial database seeds (self-contained and idempotent)
+      seedAdmin();
+      seedSuperAdmin();
+      seedPrivacy();
+      seedTerms();
+      seedAbout();
+      seedSubscriptionPlans();
+      seedDemoUsers();
     }
-
-    await mongoose.connect(config.DATABASE_URL as string);
-    // eslint-disable-next-line no-console
-    console.log("Database connected successfully");
-
-    server = app.listen(config.PORT, () => {
-      // eslint-disable-next-line no-console
-      console.log(`App listening on port ${config.PORT} [${config.NODE_ENV}]`);
-    });
-
-    initSocketIO(server);
-
-    // Initial database seeds (self-contained and idempotent)
-    seedAdmin();
-    seedSuperAdmin();
-    seedPrivacy();
-    seedTerms();
-    seedAbout();
-    seedSubscriptionPlans();
-    seedDemoUsers();
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Database connection failed:", error);
-    process.exit(1);
+    if (!process.env.VERCEL) {
+      process.exit(1);
+    }
   }
 }
 
@@ -105,3 +115,5 @@ process.on("SIGTERM", () => {
 process.on("SIGINT", () => {
   gracefulShutdown("SIGINT");
 });
+
+export default app;
