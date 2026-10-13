@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "node api.js && nodemon src/server.ts",
-    "build": "node api.js && tsc",
-    "start": "node api.js && node dist/server.js",
+    "dev": "nodemon src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
     "lint": "eslint 'src/**/*.{ts,js,json}'",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write 'src/**/*.{ts,js,json}'"
@@ -32,7 +32,7 @@
     "nodemailer": "^8.0.7",
     "nodemon": "^3.1.14",
     "pdf-lib": "^1.17.1",
-    "sanitize-html": "^2.17.3",
+    "sanitize-html": "2.14.0",
     "sharp": "^0.35.5",
     "socket.io": "^4.8.3",
     "validator": "^13.15.35",
