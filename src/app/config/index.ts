@@ -1,25 +1,22 @@
 import dotenv from "dotenv";
 import path from "path";
 
-const NODE_ENV = process.env.NODE_ENV || "development";
-
-// Load environment-specific .env file (.env.development or .env.production)
-// Falls back to .env if no environment-specific file exists
-dotenv.config({
-  path: path.join(process.cwd(), `.env.${NODE_ENV}`),
-  override: false,
-});
-
-// Also load base .env as fallback for any missing keys
+// Load standard .env file
 dotenv.config({
   path: path.join(process.cwd(), ".env"),
 });
+
+const isProduction = process.env.NODE_ENV === "production";
 
 const config = {
   NODE_ENV: (process.env.NODE_ENV as string) || "development",
   PORT: Number(process.env.PORT) || 5000,
 
-  DATABASE_URL: process.env.DATABASE_URL,
+  // Database URL (defaults to DATABASE_URL, with optional PROD_DATABASE_URL if in production)
+  DATABASE_URL:
+    isProduction && process.env.PROD_DATABASE_URL
+      ? process.env.PROD_DATABASE_URL
+      : process.env.DATABASE_URL,
 
   JWT_SECRET_KEY: process.env.JWT_SECRET_KEY,
   JWT_REFRESH_KEY: process.env.JWT_REFRESH_KEY,
@@ -40,6 +37,7 @@ const config = {
   CLOUDINARY_FOLDER_NAME: process.env.CLOUDINARY_FOLDER_NAME,
 
   LOCAL_URL: process.env.LOCAL_URL,
+  CLIENT_URLS: process.env.CLIENT_URLS,
 
   ADMIN_EMAIL: process.env.ADMIN_EMAIL,
   ADMIN_PASS: process.env.ADMIN_PASS,
