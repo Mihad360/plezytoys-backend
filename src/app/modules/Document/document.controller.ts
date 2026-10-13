@@ -30,4 +30,22 @@ const getCompanyDocuments = catchAsync(async (req, res) => {
   sendResponse(res, { statusCode: HttpStatus.OK, success: true, message: "Company documents retrieved", data: result });
 });
 
-export const DocumentControllers = { createDocument, getMyDocuments, getCompanyDocuments };
+const updateDocument = catchAsync(async (req, res) => {
+  const user = req.user as JwtPayload;
+  const userDoc = await UserModel.findById(user.user);
+  if (!userDoc || !userDoc.company) throw new AppError(HttpStatus.FORBIDDEN, "Company association required");
+
+  const result = await DocumentServices.updateDocumentInDB(userDoc.company.toString(), req.params.id as string, req.body);
+  sendResponse(res, { statusCode: HttpStatus.OK, success: true, message: "Document updated successfully", data: result });
+});
+
+const deleteDocument = catchAsync(async (req, res) => {
+  const user = req.user as JwtPayload;
+  const userDoc = await UserModel.findById(user.user);
+  if (!userDoc || !userDoc.company) throw new AppError(HttpStatus.FORBIDDEN, "Company association required");
+
+  const result = await DocumentServices.deleteDocumentFromDB(userDoc.company.toString(), req.params.id as string);
+  sendResponse(res, { statusCode: HttpStatus.OK, success: true, message: "Document deleted successfully", data: result });
+});
+
+export const DocumentControllers = { createDocument, getMyDocuments, getCompanyDocuments, updateDocument, deleteDocument };

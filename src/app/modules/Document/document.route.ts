@@ -25,4 +25,16 @@ router.get(
   DocumentControllers.getCompanyDocuments
 );
 
+router.patch(
+  "/:id",
+  auth("company_admin", "manager"),
+  DocumentControllers.updateDocument
+);
+
+router.delete(
+  "/:id",
+  auth("company_admin", "manager"),
+  DocumentControllers.deleteDocument
+);
+
 export const DocumentRoutes = router;

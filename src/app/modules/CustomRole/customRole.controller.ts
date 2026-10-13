@@ -44,4 +44,14 @@ const assignRole = catchAsync(async (req, res) => {
   sendResponse(res, { statusCode: HttpStatus.OK, success: true, message: "Role assigned successfully", data: result });
 });
 
-export const CustomRoleControllers = { createRole, getRoles, updateRole, assignRole };
+const deleteRole = catchAsync(async (req, res) => {
+  const user = req.user as JwtPayload;
+  const id = req.params.id as string;
+  const userDoc = await UserModel.findById(user.user);
+  if (!userDoc || !userDoc.company) throw new AppError(HttpStatus.FORBIDDEN, "Company association required");
+
+  const result = await CustomRoleServices.deleteCustomRole(id, userDoc.company.toString());
+  sendResponse(res, { statusCode: HttpStatus.OK, success: true, message: "Role deleted successfully", data: result });
+});
+
+export const CustomRoleControllers = { createRole, getRoles, updateRole, assignRole, deleteRole };

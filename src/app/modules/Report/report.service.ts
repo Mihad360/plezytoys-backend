@@ -165,10 +165,19 @@ const reviewReportInDB = async (
   return report;
 };
 
+const deleteReportFromDB = async (id: string, companyId: string) => {
+  const report = await ReportModel.findOneAndDelete({ _id: id, company: companyId });
+  if (!report) {
+    throw new AppError(HttpStatus.NOT_FOUND, "Report not found");
+  }
+  return report;
+};
+
 export const ReportServices = {
   createReportIntoDB,
   getAllReportsFromDB,
   getReportByIdFromDB,
   updateReportInDB,
-  reviewReportInDB
+  reviewReportInDB,
+  deleteReportFromDB,
 };

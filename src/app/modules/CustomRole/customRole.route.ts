@@ -26,6 +26,12 @@ router.patch(
   CustomRoleControllers.updateRole
 );
 
+router.delete(
+  "/:id",
+  auth("company_admin"),
+  CustomRoleControllers.deleteRole
+);
+
 router.post(
   "/assign",
   auth("company_admin"),

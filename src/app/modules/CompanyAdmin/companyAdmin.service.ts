@@ -186,10 +186,160 @@ const updateCompanySettings = async (companyId: string, payload: any) => {
   return company;
 };
 
+import bcrypt from "bcrypt";
+
+const createEmployee = async (companyId: string, payload: any) => {
+  const email = (payload.email || "").toLowerCase().trim();
+  const existingUser = await UserModel.findOne({ email });
+  if (existingUser) {
+    throw new AppError(HttpStatus.CONFLICT, "A user with this email already exists");
+  }
+
+  const password = payload.password || "Employee@1234";
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const fullName = payload.name || `${payload.firstName || ""} ${payload.lastName || ""}`.trim();
+
+  const newEmployee = await UserModel.create({
+    ...payload,
+    name: fullName,
+    email,
+    password: hashedPassword,
+    role: "employee",
+    company: companyId,
+    status: payload.status || "active",
+    isActive: true,
+    isVerified: true,
+  });
+
+  return newEmployee;
+};
+
+const updateEmployee = async (companyId: string, employeeId: string, payload: any) => {
+  if (payload.password) {
+    payload.password = await bcrypt.hash(payload.password, 10);
+  }
+  if (payload.firstName || payload.lastName) {
+    payload.name = `${payload.firstName || ""} ${payload.lastName || ""}`.trim();
+  }
+  delete payload.company;
+  delete payload.role;
+
+  const employee = await UserModel.findOneAndUpdate(
+    { _id: employeeId, company: companyId, role: "employee" },
+    { $set: payload },
+    { new: true, runValidators: true }
+  ).select("-password -otp");
+
+  if (!employee) {
+    throw new AppError(HttpStatus.NOT_FOUND, "Employee not found");
+  }
+  return employee;
+};
+
+const deleteEmployee = async (companyId: string, employeeId: string) => {
+  const employee = await UserModel.findOneAndUpdate(
+    { _id: employeeId, company: companyId, role: "employee" },
+    { $set: { isDeleted: true, status: "inactive", isActive: false } },
+    { new: true }
+  );
+  if (!employee) {
+    throw new AppError(HttpStatus.NOT_FOUND, "Employee not found");
+  }
+  return employee;
+};
+
+const getCompanyManagersFromDB = async (companyId: string, query: Record<string, unknown>) => {
+  const managerQuery = new QueryBuilder(
+    UserModel.find({ company: companyId, role: "manager", isDeleted: false })
+      .populate("assignedLocation", "name")
+      .select("-password -otp"),
+    query
+  )
+    .search(["firstName", "lastName", "name", "email", "phone"])
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const managers = await managerQuery.modelQuery;
+  const meta = await managerQuery.countTotal();
+
+  return { managers, meta };
+};
+
+const createManager = async (companyId: string, payload: any) => {
+  const email = (payload.email || "").toLowerCase().trim();
+  const existingUser = await UserModel.findOne({ email });
+  if (existingUser) {
+    throw new AppError(HttpStatus.CONFLICT, "A user with this email already exists");
+  }
+
+  const password = payload.password || "Manager@1234";
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const fullName = payload.name || `${payload.firstName || ""} ${payload.lastName || ""}`.trim();
+
+  const newManager = await UserModel.create({
+    ...payload,
+    name: fullName,
+    email,
+    password: hashedPassword,
+    role: "manager",
+    company: companyId,
+    status: payload.status || "active",
+    isActive: true,
+    isVerified: true,
+  });
+
+  return newManager;
+};
+
+const updateManager = async (companyId: string, managerId: string, payload: any) => {
+  if (payload.password) {
+    payload.password = await bcrypt.hash(payload.password, 10);
+  }
+  if (payload.firstName || payload.lastName) {
+    payload.name = `${payload.firstName || ""} ${payload.lastName || ""}`.trim();
+  }
+  delete payload.company;
+  delete payload.role;
+
+  const manager = await UserModel.findOneAndUpdate(
+    { _id: managerId, company: companyId, role: "manager" },
+    { $set: payload },
+    { new: true, runValidators: true }
+  ).select("-password -otp");
+
+  if (!manager) {
+    throw new AppError(HttpStatus.NOT_FOUND, "Manager not found");
+  }
+  return manager;
+};
+
+const deleteManager = async (companyId: string, managerId: string) => {
+  const manager = await UserModel.findOneAndUpdate(
+    { _id: managerId, company: companyId, role: "manager" },
+    { $set: { isDeleted: true, status: "inactive", isActive: false } },
+    { new: true }
+  );
+  if (!manager) {
+    throw new AppError(HttpStatus.NOT_FOUND, "Manager not found");
+  }
+  return manager;
+};
+
 export const CompanyAdminServices = {
   getCompanyDashboardStats,
   getCompanyDashboardCharts,
   getCompanyEmployeesFromDB,
+  createEmployee,
+  updateEmployee,
+  deleteEmployee,
+  getCompanyManagersFromDB,
+  createManager,
+  updateManager,
+  deleteManager,
   getWorkingTimeWeeklySummary,
   updateCompanySettings
 };

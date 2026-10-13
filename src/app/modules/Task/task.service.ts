@@ -195,11 +195,20 @@ const toggleChecklistItemInDB = async (taskId: string, itemId: string, isComplet
   return task;
 };
 
+const deleteTaskFromDB = async (taskId: string, companyId: string) => {
+  const result = await TaskModel.findOneAndDelete({ _id: taskId, company: companyId });
+  if (!result) {
+    throw new AppError(HttpStatus.NOT_FOUND, "Task not found");
+  }
+  return result;
+};
+
 export const TaskServices = {
   createTaskIntoDB,
   getAllTasksFromDB,
   getTaskByIdFromDB,
   updateTaskInDB,
+  deleteTaskFromDB,
   submitTaskForReview,
   reviewTaskInDB,
   toggleChecklistItemInDB

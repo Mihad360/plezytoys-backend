@@ -25,6 +25,12 @@ router.get(
   CompanyControllers.getMyCompany
 );
 
+router.patch(
+  "/my-company",
+  auth("company_admin"),
+  CompanyControllers.updateMyCompany
+);
+
 router.get(
   "/",
   auth("super_admin", "admin"),

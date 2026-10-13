@@ -117,11 +117,30 @@ const toggleChecklistItem = catchAsync(async (req, res) => {
   });
 });
 
+const deleteTask = catchAsync(async (req, res) => {
+  const user = req.user as JwtPayload;
+  const userDoc = await UserModel.findById(user.user);
+  if (!userDoc || !userDoc.company) {
+    throw new AppError(HttpStatus.FORBIDDEN, "Company association required");
+  }
+
+  const id = req.params.id as string;
+  const result = await TaskServices.deleteTaskFromDB(id, userDoc.company.toString());
+
+  sendResponse(res, {
+    statusCode: HttpStatus.OK,
+    success: true,
+    message: "Task deleted successfully",
+    data: result,
+  });
+});
+
 export const TaskControllers = {
   createTask,
   getAllTasks,
   getTaskById,
   updateTask,
+  deleteTask,
   submitTask,
   reviewTask,
   toggleChecklistItem,

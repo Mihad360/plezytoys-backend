@@ -717,7 +717,7 @@ const setPin = async (userId: string, pin: string) => {
   return { message: "Security PIN set successfully" };
 };
 
-const loginWithPin = async (emailOrEmployeeId: string, pin: string) => {
+const loginWithPin = async (emailOrEmployeeId: string, pin: string, fcmToken?: string) => {
   const user = await UserModel.findOne({
     $or: [
       { email: emailOrEmployeeId.toLowerCase() },
@@ -733,6 +733,13 @@ const loginWithPin = async (emailOrEmployeeId: string, pin: string) => {
   const isMatch = await bcrypt.compare(pin, user.pin);
   if (!isMatch) {
     throw new AppError(HttpStatus.UNAUTHORIZED, "Incorrect security PIN");
+  }
+
+  // Register push token if provided
+  if (fcmToken) {
+    await UserModel.findByIdAndUpdate(user._id, {
+      $addToSet: { fcmToken },
+    });
   }
 
   const jwtPayload: JwtPayload = {

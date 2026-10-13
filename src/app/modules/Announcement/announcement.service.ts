@@ -46,8 +46,26 @@ const markAsRead = async (companyId: string, userId: string, announcementId: str
   return announcement;
 };
 
+const updateAnnouncementInDB = async (companyId: string, id: string, payload: any) => {
+  const result = await AnnouncementModel.findOneAndUpdate(
+    { _id: id, company: companyId },
+    { $set: payload },
+    { new: true, runValidators: true }
+  );
+  if (!result) throw new AppError(HttpStatus.NOT_FOUND, "Announcement not found");
+  return result;
+};
+
+const deleteAnnouncementFromDB = async (companyId: string, id: string) => {
+  const result = await AnnouncementModel.findOneAndDelete({ _id: id, company: companyId });
+  if (!result) throw new AppError(HttpStatus.NOT_FOUND, "Announcement not found");
+  return result;
+};
+
 export const AnnouncementServices = {
   createAnnouncementIntoDB,
   getCompanyAnnouncements,
-  markAsRead
+  markAsRead,
+  updateAnnouncementInDB,
+  deleteAnnouncementFromDB,
 };

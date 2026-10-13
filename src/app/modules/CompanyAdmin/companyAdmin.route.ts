@@ -22,6 +22,48 @@ router.get(
   CompanyAdminControllers.getCompanyEmployees
 );
 
+router.post(
+  "/employees",
+  auth("company_admin"),
+  CompanyAdminControllers.createEmployee
+);
+
+router.patch(
+  "/employees/:id",
+  auth("company_admin"),
+  CompanyAdminControllers.updateEmployee
+);
+
+router.delete(
+  "/employees/:id",
+  auth("company_admin"),
+  CompanyAdminControllers.deleteEmployee
+);
+
+router.get(
+  "/managers",
+  auth("company_admin"),
+  CompanyAdminControllers.getCompanyManagers
+);
+
+router.post(
+  "/managers",
+  auth("company_admin"),
+  CompanyAdminControllers.createManager
+);
+
+router.patch(
+  "/managers/:id",
+  auth("company_admin"),
+  CompanyAdminControllers.updateManager
+);
+
+router.delete(
+  "/managers/:id",
+  auth("company_admin"),
+  CompanyAdminControllers.deleteManager
+);
+
 router.get(
   "/working-time",
   auth("company_admin"),

@@ -40,4 +40,14 @@ const updateTraining = catchAsync(async (req, res) => {
   sendResponse(res, { statusCode: HttpStatus.OK, success: true, message: "Training updated", data: result });
 });
 
-export const TrainingRecordControllers = { assignTraining, getMyTraining, getCompanyTraining, updateTraining };
+const deleteTrainingRecord = catchAsync(async (req, res) => {
+  const user = req.user as JwtPayload;
+  const id = req.params.id as string;
+  const userDoc = await UserModel.findById(user.user);
+  if (!userDoc || !userDoc.company) throw new AppError(HttpStatus.FORBIDDEN, "Company association required");
+
+  const result = await TrainingRecordServices.deleteTrainingRecordFromDB(id, userDoc.company.toString());
+  sendResponse(res, { statusCode: HttpStatus.OK, success: true, message: "Training record deleted", data: result });
+});
+
+export const TrainingRecordControllers = { assignTraining, getMyTraining, getCompanyTraining, updateTraining, deleteTrainingRecord };

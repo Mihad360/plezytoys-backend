@@ -50,9 +50,18 @@ const assignRoleToUser = async (companyId: string, userId: string, roleId: strin
   return user;
 };
 
+const deleteCustomRole = async (id: string, companyId: string) => {
+  const role = await CustomRoleModel.findOne({ _id: id, company: companyId });
+  if (!role) throw new AppError(HttpStatus.NOT_FOUND, "Role not found");
+  if (role.type === "system") throw new AppError(HttpStatus.BAD_REQUEST, "Cannot delete system roles");
+
+  return await CustomRoleModel.findOneAndDelete({ _id: id, company: companyId });
+};
+
 export const CustomRoleServices = {
   createCustomRole,
   getCompanyRoles,
   updateCustomRole,
-  assignRoleToUser
+  assignRoleToUser,
+  deleteCustomRole,
 };

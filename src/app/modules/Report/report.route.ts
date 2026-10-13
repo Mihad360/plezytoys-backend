@@ -38,4 +38,10 @@ router.post(
   ReportControllers.reviewReport
 );
 
+router.delete(
+  "/:id",
+  auth("company_admin"),
+  ReportControllers.deleteReport
+);
+
 export const ReportRoutes = router;

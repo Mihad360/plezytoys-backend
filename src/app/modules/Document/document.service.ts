@@ -72,9 +72,27 @@ const checkAndNotifyExpiringDocuments = async (companyId: string) => {
   return expiringDocs;
 };
 
+const updateDocumentInDB = async (companyId: string, id: string, payload: any) => {
+  const result = await DocumentModel.findOneAndUpdate(
+    { _id: id, company: companyId },
+    { $set: payload },
+    { new: true, runValidators: true }
+  );
+  if (!result) throw new AppError(HttpStatus.NOT_FOUND, "Document not found");
+  return result;
+};
+
+const deleteDocumentFromDB = async (companyId: string, id: string) => {
+  const result = await DocumentModel.findOneAndDelete({ _id: id, company: companyId });
+  if (!result) throw new AppError(HttpStatus.NOT_FOUND, "Document not found");
+  return result;
+};
+
 export const DocumentServices = {
   createDocumentIntoDB,
   getMyDocuments,
   getCompanyDocuments,
+  updateDocumentInDB,
+  deleteDocumentFromDB,
   checkAndNotifyExpiringDocuments,
 };

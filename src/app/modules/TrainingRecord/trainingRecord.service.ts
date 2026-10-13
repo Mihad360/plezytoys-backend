@@ -10,6 +10,10 @@ const assignTraining = async (companyId: string, payload: Partial<ITrainingRecor
 
   const newRecord = await TrainingRecordModel.create({
     ...payload,
+    courseName: payload.courseName || (payload as any).title || "General Training",
+    provider: payload.provider || "Training Academy",
+    completedDate: payload.completedDate || (payload as any).completionDate || new Date(),
+    status: payload.status || "valid",
     company: companyId,
   });
   return newRecord;
@@ -39,9 +43,18 @@ const updateTrainingStatus = async (id: string, companyId: string, payload: Part
   return await TrainingRecordModel.findByIdAndUpdate(id, { $set: payload }, { new: true });
 };
 
+const deleteTrainingRecordFromDB = async (id: string, companyId: string) => {
+  const record = await TrainingRecordModel.findOneAndDelete({ _id: id, company: companyId });
+  if (!record) {
+    throw new AppError(HttpStatus.NOT_FOUND, "Training record not found");
+  }
+  return record;
+};
+
 export const TrainingRecordServices = {
   assignTraining,
   getMyTraining,
   getCompanyTraining,
-  updateTrainingStatus
+  updateTrainingStatus,
+  deleteTrainingRecordFromDB,
 };

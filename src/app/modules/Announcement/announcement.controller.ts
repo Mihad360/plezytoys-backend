@@ -34,4 +34,22 @@ const markAsRead = catchAsync(async (req, res) => {
   sendResponse(res, { statusCode: HttpStatus.OK, success: true, message: "Announcement marked as read", data: result });
 });
 
-export const AnnouncementControllers = { createAnnouncement, getCompanyAnnouncements, markAsRead };
+const updateAnnouncement = catchAsync(async (req, res) => {
+  const user = req.user as JwtPayload;
+  const userDoc = await UserModel.findById(user.user);
+  if (!userDoc || !userDoc.company) throw new AppError(HttpStatus.FORBIDDEN, "Company association required");
+
+  const result = await AnnouncementServices.updateAnnouncementInDB(userDoc.company.toString(), req.params.id as string, req.body);
+  sendResponse(res, { statusCode: HttpStatus.OK, success: true, message: "Announcement updated", data: result });
+});
+
+const deleteAnnouncement = catchAsync(async (req, res) => {
+  const user = req.user as JwtPayload;
+  const userDoc = await UserModel.findById(user.user);
+  if (!userDoc || !userDoc.company) throw new AppError(HttpStatus.FORBIDDEN, "Company association required");
+
+  const result = await AnnouncementServices.deleteAnnouncementFromDB(userDoc.company.toString(), req.params.id as string);
+  sendResponse(res, { statusCode: HttpStatus.OK, success: true, message: "Announcement deleted", data: result });
+});
+
+export const AnnouncementControllers = { createAnnouncement, getCompanyAnnouncements, markAsRead, updateAnnouncement, deleteAnnouncement };

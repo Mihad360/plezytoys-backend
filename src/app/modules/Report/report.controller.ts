@@ -96,10 +96,29 @@ const reviewReport = catchAsync(async (req, res) => {
   });
 });
 
+const deleteReport = catchAsync(async (req, res) => {
+  const user = req.user as JwtPayload;
+  const userDoc = await UserModel.findById(user.user);
+  if (!userDoc || !userDoc.company) {
+    throw new AppError(HttpStatus.FORBIDDEN, "Company association required");
+  }
+
+  const id = req.params.id as string;
+  const result = await ReportServices.deleteReportFromDB(id, userDoc.company.toString());
+
+  sendResponse(res, {
+    statusCode: HttpStatus.OK,
+    success: true,
+    message: "Report deleted successfully",
+    data: result,
+  });
+});
+
 export const ReportControllers = {
   createReport,
   getAllReports,
   getReportById,
   updateReport,
   reviewReport,
+  deleteReport,
 };

@@ -32,6 +32,12 @@ router.patch(
   TaskControllers.updateTask
 );
 
+router.delete(
+  "/:id",
+  auth("company_admin", "manager"),
+  TaskControllers.deleteTask
+);
+
 router.post(
   "/:id/submit",
   auth("employee", "manager"),

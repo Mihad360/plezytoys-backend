@@ -20,6 +20,7 @@ export const updatePatrolRouteSchema = z.object({
   body: z.object({
     name: z.string().optional(),
     description: z.string().optional(),
+    location: z.string().optional(),
     checkpoints: z.array(z.object({
       checkpoint: z.string(),
       order: z.number(),

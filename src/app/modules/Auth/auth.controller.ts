@@ -208,8 +208,8 @@ const setPin = catchAsync(async (req, res) => {
 });
 
 const loginWithPin = catchAsync(async (req, res) => {
-  const { identifier, pin } = req.body;
-  const result = await authServices.loginWithPin(identifier, pin);
+  const { identifier, pin, fcmToken } = req.body;
+  const result = await authServices.loginWithPin(identifier, pin, fcmToken);
 
   if (result.refreshToken) {
     res.cookie("refreshToken", result.refreshToken, {

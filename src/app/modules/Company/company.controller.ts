@@ -55,6 +55,21 @@ const getMyCompany = catchAsync(async (req, res) => {
   });
 });
 
+const updateMyCompany = catchAsync(async (req, res) => {
+  const user = req.user as JwtPayload;
+  const userDoc = await UserModel.findById(user.user);
+  if (!userDoc || !userDoc.company) throw new AppError(HttpStatus.FORBIDDEN, "Company association required");
+
+  const result = await CompanyServices.updateCompanyInDB(userDoc.company.toString(), req.body);
+
+  sendResponse(res, {
+    statusCode: HttpStatus.OK,
+    success: true,
+    message: "Company profile updated successfully",
+    data: result,
+  });
+});
+
 const updateCompany = catchAsync(async (req, res) => {
   const { id } = req.params;
   const result = await CompanyServices.updateCompanyInDB(id as string, req.body);
@@ -109,6 +124,7 @@ export const CompanyControllers = {
   getAllCompanies,
   getCompanyById,
   getMyCompany,
+  updateMyCompany,
   updateCompany,
   updateCompanyModules,
   deleteCompany,

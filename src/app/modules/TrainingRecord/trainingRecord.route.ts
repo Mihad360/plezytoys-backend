@@ -32,4 +32,10 @@ router.patch(
   TrainingRecordControllers.updateTraining
 );
 
+router.delete(
+  "/:id",
+  auth("company_admin", "manager"),
+  TrainingRecordControllers.deleteTrainingRecord
+);
+
 export const TrainingRecordRoutes = router;

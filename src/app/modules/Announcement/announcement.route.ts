@@ -19,6 +19,18 @@ router.get(
   AnnouncementControllers.getCompanyAnnouncements
 );
 
+router.patch(
+  "/:id",
+  auth("company_admin", "manager"),
+  AnnouncementControllers.updateAnnouncement
+);
+
+router.delete(
+  "/:id",
+  auth("company_admin", "manager"),
+  AnnouncementControllers.deleteAnnouncement
+);
+
 router.post(
   "/:id/read",
   auth("company_admin", "manager", "employee"),
