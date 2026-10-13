@@ -29,10 +29,14 @@ const ensureDBConnection = async () => {
   }
   if (!cachedPromise) {
     cachedPromise = mongoose
-      .connect(config.DATABASE_URL as string)
+      .connect(config.DATABASE_URL as string, {
+        serverSelectionTimeoutMS: 5000,
+      })
       .catch((err) => {
         cachedPromise = null;
-        throw err;
+        throw new Error(
+          `Failed to connect to MongoDB: ${err.message}. If deploying on Vercel, please make sure '0.0.0.0/0' is added to MongoDB Atlas Network Access.`,
+        );
       });
   }
   await cachedPromise;
@@ -40,7 +44,12 @@ const ensureDBConnection = async () => {
 
 // Ensure database connection in serverless environment
 app.use(async (req, res, next) => {
-  if (req.path === "/" || req.path === "/favicon.ico") {
+  if (
+    req.path === "/" ||
+    req.path === "/favicon.ico" ||
+    req.path === "/health" ||
+    req.path === "/api/health"
+  ) {
     return next();
   }
   try {
@@ -92,6 +101,16 @@ app.use("/app-instruction", privacyControllers.appInstruction);
 // Welcome Root Route
 app.get("/", (req: Request, res: Response) => {
   res.status(200).send(template);
+});
+
+// Environment & Database Health Check Route
+app.get(["/health", "/api/health"], (req: Request, res: Response) => {
+  res.status(200).json({
+    status: "ok",
+    nodeEnv: config.NODE_ENV,
+    hasDatabaseUrl: Boolean(config.DATABASE_URL),
+    isDbConnected: mongoose.connection.readyState === 1,
+  });
 });
 
 // 404 Not Found & Global Error Handler (in correct Express order)

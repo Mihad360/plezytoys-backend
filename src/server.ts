@@ -29,32 +29,29 @@ export async function connectDB() {
 }
 
 async function main() {
+
   try {
     await connectDB();
 
-    if (!process.env.VERCEL) {
-      server = app.listen(config.PORT, () => {
-        // eslint-disable-next-line no-console
-        console.log(`App listening on port ${config.PORT} [${config.NODE_ENV}]`);
-      });
+    server = app.listen(config.PORT, () => {
+      // eslint-disable-next-line no-console
+      console.log(`App listening on port ${config.PORT} [${config.NODE_ENV}]`);
+    });
 
-      initSocketIO(server);
+    initSocketIO(server);
 
-      // Initial database seeds (self-contained and idempotent)
-      seedAdmin();
-      seedSuperAdmin();
-      seedPrivacy();
-      seedTerms();
-      seedAbout();
-      seedSubscriptionPlans();
-      seedDemoUsers();
-    }
+    // Initial database seeds (self-contained and idempotent)
+    seedAdmin();
+    seedSuperAdmin();
+    seedPrivacy();
+    seedTerms();
+    seedAbout();
+    seedSubscriptionPlans();
+    seedDemoUsers();
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error("Database connection failed:", error);
-    if (!process.env.VERCEL) {
-      process.exit(1);
-    }
+    process.exit(1);
   }
 }
 
